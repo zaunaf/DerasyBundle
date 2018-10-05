@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services
+        http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <!--<service id="Derasy\DerasyBundle\DerasyGreeting" />-->
+        <service id="derasy_bundle.derasy_greeting" class="Derasy\DerasyBundle\DerasyGreeting" public="true">
+            <argument type="service" id="derasy_bundle.salam_provider" />
+        </service>
+        <service id="Derasy\DerasyBundle\DerasyGreeting" alias="derasy_bundle.derasy_greeting" public="false"/>
+
+        <service id="derasy_bundle.derasy_salam_provider" class="Derasy\DerasyBundle\DerasySalamProvider"/>
+        <service id="derasy_bundle.salam_provider" alias="derasy_bundle.derasy_salam_provider" public="false"/>
+    </services>
+</container>
