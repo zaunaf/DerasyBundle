@@ -1,0 +1,108 @@
+package {{namespace}}.model;
+
+import com.nufaza.geotagpaud.AppDatabase;
+
+import com.raizlabs.android.dbflow.annotation.Column;
+import com.raizlabs.android.dbflow.annotation.PrimaryKey;
+import com.raizlabs.android.dbflow.annotation.Table;
+import com.raizlabs.android.dbflow.sql.language.SQLite;
+import com.raizlabs.android.dbflow.structure.BaseModel;
+
+import java.math.BigInteger;
+import java.util.Date;
+import java.util.Locale;
+import java.util.UUID;
+import java.text.SimpleDateFormat;
+import org.json.JSONException;
+import org.json.JSONObject;
+import android.util.Log;
+
+@Table(name = "{{ tableName }}", database = AppDatabase.class)
+public class {{ tableCcName  }} extends BaseModel {
+
+{% for column in columns %}
+{% if column.isPrimaryKey %}
+    @PrimaryKey
+{% else %}
+    @Column
+{% endif %}
+    public {{ column.javaType }} {{ column.columnName }};
+
+{% endfor %}
+{% for column in columns %}
+
+    public {{ column.javaType }} get{{ column.columnCcName }}(){
+        return {{ column.columnName }};
+    }
+
+    public void set{{ column.columnCcName }}({{ column.javaType }} {{column.columnName}}){
+        this.{{column.columnName}} = {{column.columnName}};
+    }
+
+{% if (column.isForeignKey) %}
+{% if (column.columnName != column.relatedColumnName) %}
+    public {{column.relatedTableCcName}} get{{column.relatedTableCcName}}By{{column.columnCcName}}(){
+{% else %}
+    public {{column.relatedTableCcName}} get{{column.relatedTableCcName}}(){
+{% endif %}
+        return SQLite.select().from({{column.relatedTableCcName}}.class).where({{column.relatedTableCcName}}_Table.{{column.columnName}}.eq(this.get{{column.columnCcName}}())).querySingle();
+    }
+
+{% endif %}
+{% endfor %}
+
+    public void fromJsonObject(JSONObject obj) {
+        try {
+{% for column in columns %}
+            if (obj.has("{{column.columnName}}") && !obj.isNull("{{column.columnName}}")){
+{% if (column.type == 'date') %}
+                SimpleDateFormat dateFormat = null;
+                Date parsedDate = null;
+                try {
+                    dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                    parsedDate = dateFormat.parse(obj.get("{{column.columnName}}").toString());
+                } catch (Exception e) {
+                    dateFormat = new SimpleDateFormat("E MMM dd HH:mm:ss zzzz yyyy",  Locale.US);
+                    parsedDate = dateFormat.parse(obj.get("{{column.columnName}}").toString());
+                }
+                this.{{column.columnName}} = parsedDate;
+{% elseif (column.type == 'timestamp') %}
+                SimpleDateFormat dateFormat = null;
+                Date parsedDate = null;
+                try {
+                    dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                    parsedDate = dateFormat.parse(obj.get("{{column.columnName}}").toString());
+                } catch (Exception e) {
+                    dateFormat = new SimpleDateFormat("E MMM dd HH:mm:ss zzzz yyyy",  Locale.US);
+                    parsedDate = dateFormat.parse(obj.get("{{column.columnName}}").toString());
+                }
+                this.{{column.columnName}} = parsedDate;
+{% elseif (column.javaType == 'String') %}
+                this.{{column.columnName}} = (String) obj.get("{{column.columnName}}");
+{% elseif (column.javaType == 'Integer') %}
+                this.{{column.columnName}} = (Integer) Integer.valueOf(obj.get("{{column.columnName}}").toString());
+{% elseif (column.type == 'Double') %}
+                this.{{column.columnName}} = (Double) Double.valueOf(obj.get("{{column.columnName}}").toString());
+{% else %}
+                this.{{column.columnName}} = ({{ column.javaType }}) obj.get("{{column.columnName}}");
+{% endif %}
+
+            }
+{% endfor %}
+        } catch (Exception e) {
+            Log.e("Error JSON", "Error parsing JSON");
+        }
+    }
+
+    public JSONObject getJSONObject() {
+        JSONObject obj = new JSONObject();
+        try {
+{% for column in columns %}
+            obj.put("{{column.columnName}}", {{column.columnName}});
+{% endfor %}
+        } catch (JSONException e) {
+            Log.e("Error JSON", "Error creating JSON: " + e.getMessage());
+        }
+        return obj;
+    }
+}

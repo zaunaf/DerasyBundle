@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+
+        <!-- Command -->
+        <service id="derasy_bundle.reverse" class="Derasy\DerasyBundle\Command\ReverseCommand">
+            <tag name="console.command" command="derasy:reverse" />
+        </service>
+        <service id="derasy_bundle.build_model" class="Derasy\DerasyBundle\Command\BuildModelCommand">
+            <tag name="console.command" command="derasy:build:model" />
+        </service>
+        <service id="derasy_bundle.build_orm" class="Derasy\DerasyBundle\Command\BuildOrmCommand">
+            <tag name="console.command" command="derasy:build:orm" />
+        </service>
+        <service id="derasy_bundle.build_ui_android" class="Derasy\DerasyBundle\Command\BuildUiAndroidCommand">
+            <tag name="console.command" command="derasy:build_ui:android" />
+        </service>
+        <service id="derasy_bundle.build_ui_ext6" class="Derasy\DerasyBundle\Command\BuildUiExt6Command">
+            <tag name="console.command" command="derasy:build_ui:ext6" />
+        </service>
+        <service id="derasy_bundle.build_ui_nebular" class="Derasy\DerasyBundle\Command\BuildUiNebularCommand">
+            <tag name="console.command" command="derasy:build_ui:nebular" />
+        </service>
+        <service id="derasy_bundle.build_ui_fusereact" class="Derasy\DerasyBundle\Command\BuildUiFuseReactCommand">
+            <tag name="console.command" command="derasy:build_ui:fusereact" />
+        </service>
+        <service id="derasy_bundle.patch_propel" class="Derasy\DerasyBundle\Command\PatchPropelCommand">
+            <tag name="console.command" command="derasy:patch:propel" />
+        </service>
+        <service id="derasy_bundle.generate_password" class="Derasy\DerasyBundle\Command\GeneratePasswordCommand">
+            <tag name="console.command" command="derasy:generate:password" />
+        </service>
+    </services>
+
+</container>

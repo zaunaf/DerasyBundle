@@ -1,0 +1,184 @@
+<?php
+
+// api/src/Entity/{{ tableCcName }}.php
+
+namespace App\Entity;
+
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
+{% if (isUserTable) %}
+use Symfony\Component\Security\Core\User\UserInterface;
+{% endif %}
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Annotation\GeneratedValue;
+use ApiPlatform\Core\Annotation\ApiFilter;
+use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
+
+/**
+ * {{ tableCcName }}.
+ *
+{% if (isUserTable) %}
+ * @ORM\Entity(repositoryClass="App\Repository\UserRepository")
+{% else %}
+ * @ORM\Entity
+{% endif %}
+ * @ORM\Table(name="{{ tableFullName }}")
+ * @ApiResource(normalizationContext={"groups"={"{{ tableName }}"}})
+ * @ApiFilter(OrderFilter::class, properties={{'{'}}{% for column in columns %}{% if column.isText or column.isNumeric %}"{{ column.columnName }}"{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}{{'}'}}, arguments={"orderParameterName"="order"})
+ * @ApiFilter(SearchFilter::class, properties={{'{'}}{% for column in columns %}{% if column.isText %}"{{ column.columnName }}":"partial"{% elseif column.isNumeric %}"{{ column.columnName }}":"exact"{% endif %}{% if column.isText or column.isNumeric %}{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}{{'}'}})
+ */
+{% if (isUserTable) %}
+class {{ tableCcName }} implements UserInterface, \Serializable
+{% else %}
+class {{ tableCcName }}
+{% endif %}
+{
+{% if (isUserTable) %}
+{% for role in roles %}
+    const ROLE_{{ role | upper }} = 'ROLE_{{ role | upper }}';
+{% endfor %}
+    const DEFAULT_ROLES = [self::ROLE_{{ default_role | upper }}];
+{% endif %}
+{% for column in columns %}
+{% if (column.relatedType == 'many-to-one') %}
+
+    /**
+     * @var {{ column.relatedTableCcName }}
+     *
+     * @ORM\ManyToOne(targetEntity="{{ column.relatedTableCcName }}", inversedBy="{{ tableName }}s")
+     * @ORM\JoinColumn(name="{{ column.relatedColumnName }}", referencedColumnName="{{ column.relatedColumnName }}"{% if (not column.isNotNull) %},  nullable=true{% endif %})
+     * @Groups({"{{ tableName }}"})
+     */
+    public ${{ column.relatedTableName }};
+{% endif %}
+
+    /**
+     * @var {{ column.nativeType }}
+     *
+{% if (column.isPrimaryKey) %}
+     * @ORM\Id
+{% endif %}
+{% if (column.columnName == 'roles') %}
+     * @ORM\Column(type="simple_array", length=200)
+{% else %}
+     * @ORM\Column(name="{{ column.columnName }}", type="{{ column.ormType }}"{% if (column.isText) and (not column.isLongText) %}, length={{ column.length }}{% endif %}{% if (not column.isNotNull) %},  nullable=true{% endif %})
+{% endif %}
+{% if (not compositePk) %}
+{% if (column.isPrimaryKey) and (column.ormType == 'integer') %}
+     * @ORM\GeneratedValue(strategy="SEQUENCE")
+{% elseif (column.isPrimaryKey) and (column.isUuid) %}
+     * @ORM\GeneratedValue(strategy="UUID")
+{% endif %}
+{% endif %}
+{% if (column.isNotNull) %}
+     * @Assert\NotNull
+{% endif %}
+     * @Groups({"{{ tableName }}"{% for key, value in relationOneToMany %}, "{{ value.varEntity }}"{% endfor %}})
+{#{% if (not column.isPrimaryKey) and (not column.isForeignKey) and (not column.isUuid) %}#}
+{#{% endif %}#}
+     */
+{# Table with single PK, differ the columns #}
+{% if (column.isPrimaryKey) and (not compositePk) %}
+    public $id;
+{% else %}
+    public ${{ column.columnName }};
+{% endif %}
+{% endfor %}
+{% for key, value in relationOneToMany %}
+
+    /**
+     * @var {{ value.targetEntity }}[] Available {{ value.varEntity }}s for this {{ tableName }}.
+     *
+     * @ORM\OneToMany(targetEntity="{{ value.targetEntity }}", mappedBy="{{ value.mappedBy }}")
+     * @Groups({"{{ tableName }}"})
+     */
+    public ${{ value.varEntity }}s;
+{% endfor %}
+
+    public function __construct() {
+{% for key, value in relationOneToMany %}
+        $this->{{ value.varEntity }}s = new ArrayCollection();
+{% endfor %}
+}
+{% if (not compositePk) %}
+
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    public function setId($id)
+    {
+        $this->id = $id;
+    }
+{% endif %}
+{% for column in columns %}
+{% if (column.relatedType == 'many-to-one') %}
+
+    public function get{{ column.relatedTableCcName }}(): {{ column.relatedTableCcName }}
+    {
+        return $this->{{ column.relatedTableName }};
+    }
+
+    public function set{{ column.relatedTableCcName }}({{ column.relatedTableCcName }} ${{ column.relatedTableName }}): self
+    {
+        $this->{{ column.relatedTableName }} = ${{ column.relatedTableName }};
+        return $this;
+    }
+{% endif %}
+{% if (not column.isPrimaryKey) %}
+
+    public function get{{ column.columnCcName }}()
+    {
+        return $this->{{ column.columnName }};
+    }
+
+    public function set{{ column.columnCcName }}(${{ column.columnName }})
+    {
+        $this->{{ column.columnName }} = ${{ column.columnName }};
+    }
+{% endif %}
+{% endfor %}
+{% if (isUserTable) %}
+
+    public function getSalt()
+    {
+        // you *may* need a real salt depending on your encoder
+        // see section on salt below
+        return null;
+    }
+
+    public function eraseCredentials()
+    {
+    }
+
+    /** @see \Serializable::serialize() */
+    public function serialize()
+    {
+        return serialize(array(
+{% for pkColumn in pkColumns %}
+            $this->{{ pkColumn }},
+{% endfor %}
+            $this->username,
+            $this->password,
+            // see section on salt below
+            // $this->salt,
+        ));
+    }
+
+    /** @see \Serializable::unserialize() */
+    public function unserialize($serialized)
+    {
+        list (
+            $this->id,
+            $this->username,
+            $this->password,
+            // see section on salt below
+            // $this->salt
+        ) = unserialize($serialized, array('allowed_classes' => false));
+    }
+{% endif %}
+}

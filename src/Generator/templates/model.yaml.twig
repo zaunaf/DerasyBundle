@@ -1,0 +1,12 @@
+- table: {{ data.tableName }}
+  tableNameCc: {{ data.tableNameCc }}
+  databaseName: {{ data.databaseName }}
+  databaseNameCc: {{ data.databaseNameCc }}
+  schemaName: {{ data.schemaName }}
+  columns:
+{% for col in data.columns %}
+      - column: {{ col.columnName }}
+        columnPhpName: {{ col.columnPhpName }}
+        type: {{ col.type }}
+        length: {{ col.length }}
+{% endfor %}

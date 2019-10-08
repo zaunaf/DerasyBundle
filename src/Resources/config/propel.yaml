@@ -1,0 +1,40 @@
+propel:
+
+  paths:
+      # Directory where the project files (`schema.xml`, etc.) are located.
+      # Default value is current path #
+      #projectDir: current_path
+
+      # The directory where Propel expects to find your `schema.xml` file.
+      schemaDir: config/propel
+
+      # The directory where Propel should output classes, sql, config, etc.
+      # Default value is current path #
+      #outputDir: config/propel
+
+      # The directory where Propel should output generated object model classes.
+      #phpDir: model
+
+      # The directory where Propel should output the compiled runtime configuration.
+      #phpConfDir: config/propel
+
+      # The directory where Propel should output the generated DDL (or data insert statements, etc.)
+      sqlDir: config/propel
+
+  database:
+      connections:
+          appdb:
+              adapter: sqlsrv
+              classname: Propel\Runtime\Connection\DebugPDO
+              dsn: sqlite:var/app.db
+              attributes:
+  reverse: 
+      connection: appdb
+  runtime:
+      defaultConnection: appdb
+      connections:
+          - appdb
+  generator:
+      defaultConnection: appdb
+      connections:
+          - appdb

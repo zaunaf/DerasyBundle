@@ -1,0 +1,95 @@
+<?php
+
+// api/src/Entity/{{ tableNameCc }}.php
+
+namespace App\Entity;
+
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Annotation\GeneratedValue;
+use ApiPlatform\Core\Annotation\ApiResource;
+use Symfony\Component\Validator\Constraints as Assert;
+
+/**
+ * {{ tableNameCc }}.
+ *
+ * @ORM\Entity
+ * @ORM\Table(name="{{ tableFullName }}")
+ * @ApiResource
+ */
+
+class {{ tableNameCc }}
+{
+{% for column in columns %}
+
+    /**
+{% if (column.relatedType == 'many-to-one') %}
+     * @var {{ column.relatedTableCc }}
+{% else %}
+     * @var {{ column.nativeType }}
+ {% endif %}
+     *
+{% if (column.isPrimaryKey) %}
+     * @ORM\Id
+{% endif %}
+{% if (column.relatedType == 'many-to-one') %}
+     * @ORM\ManyToOne(targetEntity="{{ column.relatedTableCc }}", inversedBy="{{ tableName }}s")
+     * @ORM\JoinColumn(name="{{ column.relatedColumn }}", referencedColumnName="{{ column.relatedColumn }}"{% if (not column.isNotNull) %},  nullable=true{% endif %})
+{% else %}
+     * @ORM\Column(name="{{ column.columnName }}", type="{{ column.ormType }}"{% if (column.isText) and (not column.isLongText) %}, length={{ column.length }}{% endif %}{% if (not column.isNotNull) %},  nullable=true{% endif %})
+{% endif %}
+{% if (column.isPrimaryKey) and (column.ormType == 'integer') %}
+     * @ORM\GeneratedValue(strategy="SEQUENCE")
+{% elseif (column.isPrimaryKey) and (column.isUuid) %}
+     * @ORM\GeneratedValue(strategy="UUID")
+{% endif %}
+{% if (column.isNotNull) %}
+     * @Assert\NotNull
+{% endif %}
+     */
+{# Table with single PK, differ the columns #}
+{% if (column.isPrimaryKey) %}
+    private $id;
+{% elseif (column.relatedType == 'many-to-one') %}
+    public ${{ column.relatedTableVar }};
+{% else %}
+    public ${{ column.columnName }};
+{% endif %}
+
+{% endfor %}
+{% for key, value in relationOneToMany %}
+
+    /**
+     * @var {{ value.targetEntity }}[] Available {{ value.varEntity }}s for this {{ tableName }}.
+     *
+     * @ORM\OneToMany(targetEntity="{{ value.targetEntity }}", mappedBy="{{ value.mappedBy }}")
+     */
+    public ${{ value.varEntity }}s;
+{% endfor %}
+
+    public function __construct() {
+{% for key, value in relationOneToMany %}
+        $this->{{ value.varEntity }}s = new ArrayCollection();
+{% endfor %}
+    }
+
+    public function getId()
+    {
+        return $this->id;
+    }
+{% for column in columns %}
+{% if (column.relatedType == 'many-to-one') %}
+
+    public function get{{ column.relatedTableCc }}(): {{ column.relatedTableCc }}
+    {
+        return $this->{{ column.relatedTableVar }};
+    }
+
+    public function set{{ column.relatedTableCc }}({{ column.relatedTableCc }} ${{ column.relatedTableVar }}): self
+    {
+        $this->{{ column.relatedTableVar }} = ${{ column.relatedTableVar }};
+        return $this;
+    }
+{% endif %}
+{% endfor %}
+}

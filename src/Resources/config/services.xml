@@ -5,13 +5,23 @@
         http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
+
         <!--<service id="Derasy\DerasyBundle\DerasyGreeting" />-->
         <service id="derasy_bundle.derasy_greeting" class="Derasy\DerasyBundle\DerasyGreeting" public="true">
-            <argument type="service" id="derasy_bundle.salam_provider" />
+            <argument type="collection">
+                <argument type="service" id="derasy_bundle.salam_provider" />
+            </argument>
+            <!--<argument type="collection" />-->
+            <!--<argument type="tagged" tag="derasy_word_provider" />-->
         </service>
         <service id="Derasy\DerasyBundle\DerasyGreeting" alias="derasy_bundle.derasy_greeting" public="false"/>
 
         <service id="derasy_bundle.derasy_salam_provider" class="Derasy\DerasyBundle\DerasySalamProvider"/>
         <service id="derasy_bundle.salam_provider" alias="derasy_bundle.derasy_salam_provider" public="false"/>
+
+        <service id="derasy_bundle.controller.derasy_api_controller" class="Derasy\DerasyBundle\Controller\DerasyApiController" public="true">
+            <argument type="service" id="derasy_bundle.derasy_greeting" />
+            <argument type="service" id="event_dispatcher" on-invalid="null" />
+        </service>
     </services>
 </container>

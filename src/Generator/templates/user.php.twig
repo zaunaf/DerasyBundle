@@ -1,0 +1,155 @@
+<?php
+
+// api/src/Entity/{{ tableNameCc }}.php
+
+namespace App\Entity;
+
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Annotation\GeneratedValue;
+use ApiPlatform\Core\Annotation\ApiResource;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+/**
+ * {{ tableNameCc }}.
+ *
+ * @ORM\Entity{% if (isUserTable) %}(repositoryClass="App\Repository\UserRepository"){% endif %}
+
+ * @ORM\Table(name="{{ tableFullName }}")
+ * @ApiResource
+ */
+
+class {{ tableNameCc }} {% if (isUserTable) %} implements UserInterface, \Serializable{% endif %}
+{
+{# Table with composite PK, $id is combination of two #}
+{% if (compositePk) %}
+    private $id;
+{% endif %}
+
+{% for column in columns %}
+    /**
+     * @var {{ column.nativeType }}
+{% if (column.isPrimaryKey) %}
+     * @ORM\Id
+{% endif %}
+{% if (column.isForeignKey and not column.isPrimaryKey) %}
+     * @ORM\JoinColumn(name="{{ column.columnName }}", referencedColumnName="{{ column.relatedColumn }}"{% if (not column.isNotNull) %},  nullable=true{% endif %})
+ {% else %}
+     * @ORM\Column(name="{{ column.columnName }}", type="{{ column.ormType }}"{% if (column.isText) and (not column.isLongText) %}, length={{ column.length }}{% endif %}{% if (not column.isNotNull) %},  nullable=true{% endif %})
+ {% endif %}
+{% if (column.isPrimaryKey) and (column.ormType == 'integer') and (not compositePk) %}
+     * @ORM\GeneratedValue(strategy="SEQUENCE")
+{% elseif (column.isPrimaryKey) and (column.isUuid) and (not compositePk) %}
+     * @ORM\GeneratedValue(strategy="UUID")
+{% endif %}
+{% if (column.isNotNull) %}
+     * @Assert\NotNull
+{% endif %}
+     */
+{# Table with single PK, differ the columns #}
+{% if (not compositePk) %}
+{% if (column.isPrimaryKey) %}
+    private $id;
+{% else %}
+    public ${{ column.columnName }};
+{% endif %}
+{% endif %}
+
+{# Table with composite PK, display all column #}
+{% if (compositePk) %}
+    public ${{ column.columnName }};
+{% endif %}
+
+{% endfor %}
+
+    public function getId()
+    {
+        return $this->id;
+    }
+{% for column in columns %}
+
+{% if (not compositePk) %}
+{% if (column.isPrimaryKey) %}
+{% else %}
+    public function set{{ column.columnPhpName }}(${{ column.columnName }})
+    {
+        $this->{{ column.columnName }} = ${{ column.columnName }};
+    }
+
+    public function get{{ column.columnPhpName }}()
+    {
+        return $this->{{ column.columnName }};
+    }
+{% endif %}
+{% elseif (compositePk) %}
+
+    public function set{{ column.columnPhpName }}(${{ column.columnName }})
+    {
+        $this->{{ column.columnName }} = ${{ column.columnName }};
+    }
+
+    public function get{{ column.columnPhpName }}()
+    {
+        return $this->{{ column.columnName }};
+    }
+{% endif %}
+
+
+{% endfor %}
+
+{% for key, value in relationHasMany %}
+
+    /**
+     * @var {{ value.targetEntity }}[] Available {{ value.varEntity }}s for this {{ tableName }}.
+     *
+     * @ORM\OneToMany(targetEntity="{{ value.targetEntity }}", mappedBy="{{ value.mappedBy }}")
+     */
+    public ${{ value.varEntity }}s;
+{% endfor %}
+
+    public function __construct() {
+{% for key, value in relationHasMany %}
+        $this->{{ value.varEntity }}s = new ArrayCollection();
+{% endfor %}
+    }
+
+{% if (isUserTable) %}
+    public function getSalt()
+    {
+        // you *may* need a real salt depending on your encoder
+        // see section on salt below
+        return null;
+    }
+
+    public function eraseCredentials()
+    {
+    }
+
+    /** @see \Serializable::serialize() */
+    public function serialize()
+    {
+        return serialize(array(
+{% for pkColumn in pkColumns %}
+            $this->{{ pkColumn }},
+{% endfor %}
+            $this->username,
+            $this->password,
+            // see section on salt below
+            // $this->salt,
+        ));
+    }
+
+    /** @see \Serializable::unserialize() */
+    public function unserialize($serialized)
+    {
+        list (
+            $this->id,
+            $this->username,
+            $this->password,
+            // see section on salt below
+            // $this->salt
+        ) = unserialize($serialized, array('allowed_classes' => false));
+    }
+{% endif %}
+}
